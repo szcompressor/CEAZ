@@ -2,14 +2,22 @@
 
 void SingleEncoder(hls::stream<CodeT>& quant_code_stream, uint32_t* huff_codebook, hls::stream<uint32_t>& huff_encoder_stream) {
 
-    CodeT quant_code_reg = quant_code_stream.read();
-    huff_encoder_stream << huff_codebook[quant_code_reg];
+    for(uint16_t i1 = 0; i1 < kRows; i1++) {
+    #pragma HLS PIPELINE II=1 rewind
+    // #pragma HLS UNROLL 
+
+        CodeT quant_code_reg = quant_code_stream.read();
+
+        quant_code_reg = 512;
+        huff_encoder_stream << huff_codebook[quant_code_reg];
+    }
 }
 
 void ParallelEncoder(hls::stream<CodeT> quant_code_stream[kNumHists], uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024], uint32_t hist11[1024], 
     uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t> huff_encoder_stream[kNumHists]) {
-
+#pragma HLS DATAFLOW
+    
     SingleEncoder(quant_code_stream[0], hist0, huff_encoder_stream[0]);
     SingleEncoder(quant_code_stream[1], hist1, huff_encoder_stream[1]);
     SingleEncoder(quant_code_stream[2], hist2, huff_encoder_stream[2]);

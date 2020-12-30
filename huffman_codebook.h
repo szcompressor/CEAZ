@@ -13,7 +13,6 @@ static const uint8_t RADIX = 16;
 static const uint8_t BITS_PER_LOOP = 4;
 static const uint16_t kMaxBits = 32;
 
-typedef ap_uint<16> CodeT;
 typedef uint32_t Frequency;
 typedef ap_uint<kHistogramBits> Histogram;
 typedef ap_uint<BITS_PER_LOOP> Digit;
@@ -46,10 +45,11 @@ void ComputeBitsLength(ap_uint<kSymbolBits>* parent, ap_uint<kSymbolSize>& left,
 
 void CanonizeTree(Symbol* heap, uint16_t num_symbols, Histogram* length_histogram, uint16_t* huff_bits_length, uint16_t tree_depth);
 
-void CreateCodeword(uint16_t* huff_bits_length, Histogram* length_histogram, hls::stream<Codeword>& huff_codebook_stream);
+void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream);
 
-void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, hls::stream<Codeword>& huff_codebook_stream);
-
+void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
+    uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
+    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]);
 }
 
 #endif //H_HUFFMAN_ENCODER_H
