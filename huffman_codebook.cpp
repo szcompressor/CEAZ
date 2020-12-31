@@ -1,4 +1,5 @@
 #include "huffman_codebook.h"
+#include "merge_sort_parallel.h"
 
 namespace huf {
 
@@ -8,7 +9,7 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
     CodeT old = quant_code_stream.read();
     uint32_t acc = 0;
-    for(uint32_t i = 1; i < 4096; i++) {
+    for(uint32_t i = 1; i < kRows; i++) {
     #pragma HLS PIPELINE II=1 rewind
         CodeT val = quant_code_stream.read();
         if(old == val) {
@@ -27,7 +28,7 @@ void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream) {
     // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\code_freq.txt");
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
@@ -41,11 +42,43 @@ void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[
     // o_file0.close();
 }
 
-void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
-    uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream){
+void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream){
 
 #pragma HLS DATAFLOW
+
+    uint32_t hist0[1024];
+    uint32_t hist1[1024];
+    uint32_t hist2[1024];
+    uint32_t hist3[1024];
+    uint32_t hist4[1024];
+    uint32_t hist5[1024];
+    uint32_t hist6[1024];
+    uint32_t hist7[1024];
+    uint32_t hist8[1024];
+    uint32_t hist9[1024];
+    uint32_t hist10[1024];
+    uint32_t hist11[1024];
+    uint32_t hist12[1024];
+    uint32_t hist13[1024];
+    uint32_t hist14[1024];
+    uint32_t hist15[1024];
+
+    #pragma HLS RESOURCE variable=hist0 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist1 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist2 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist3 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist4 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist5 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist6 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist7 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist8 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist9 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist10 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist11 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist12 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist13 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist14 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist15 core=RAM_T2P_BRAM 
 
     HistogramMap(quant_code_stream[0], hist0);
     HistogramMap(quant_code_stream[1], hist1);
@@ -291,9 +324,10 @@ process_symbols:
     }
 }
 
-void CreateCodeword(uint16_t* huff_bits_length,
-                    Histogram* length_histogram,
-                    hls::stream<Codeword>& huff_codebook_stream) {
+void CreateCodeword(uint16_t* huff_bits_length, Histogram* length_histogram, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
+    uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024], 
+    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
+
     //#pragma HLS inline
     ap_uint<kMaxBits> first_codeword[kMaxBits + 1];
 #pragma HLS ARRAY_PARTITION variable = first_codeword complete dim = 1
@@ -329,8 +363,6 @@ assign_codewords:
             code.code_length = 0;
         }
 
-        huff_codebook_stream << code;
-
         hist0[k] = code.codeword;
         hist1[k] = code.codeword;
         hist2[k] = code.codeword;
@@ -349,7 +381,7 @@ assign_codewords:
         hist15[k] = code.codeword;
 
     // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\codeword.txt");
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\codeword.txt");
     // o_file0 << std::bitset<sizeof(unsigned int)*8>(code.codeword) << "\n";
     }
 }
@@ -370,7 +402,7 @@ void InitBuffers(ap_uint<kSymbolBits>* parent, Frequency* inter_freq, Histogram*
     }  
 }
 
-void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, hls::stream<Codeword>& huff_codebook_stream, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
+void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
     uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
     //#pragma HLS inline
@@ -402,7 +434,10 @@ void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, hls::stream<Co
     Filter(freq_stream, heap, &heap_length);
 
     // sort the input
-    RadixSort(heap, heap_length);
+    // merge_sort_parallel(DTYPE A[SIZE], DTYPE B[SIZE]) 
+    merge_sort_parallel(heap, heap_length);
+
+    // RadixSort(heap, heap_length);
 
     // create tree
     CreateTree(heap, heap_length, parent, left, right, inter_freq);
@@ -417,9 +452,8 @@ void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, hls::stream<Co
     CanonizeTree(heap, heap_length, length_histogram, huff_bits_length, kMaxBits);
 
     // generate huffman codewords
-    CreateCodeword(huff_bits_length, length_histogram, huff_codebook_stream, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
-    uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]);
+    CreateCodeword(huff_bits_length, length_histogram, hist0, hist1, hist2, hist3, hist4, hist5, 
+        hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
 }
 
 }

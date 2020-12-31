@@ -140,15 +140,16 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data, ap_uint<k
     MemToStream(in_data, mem_row);
 
 	dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
-    WriteQuantCode(qua_code_vector_stream, qua_code_vector_out);
+    // WriteQuantCode(qua_code_vector_stream, qua_code_vector_out);
 
-    huf::QuantCodeFrequency(quant_code_stream0, freq_stream);
+    // huf::QuantCodeFrequency(quant_code_stream0, freq_stream);
 
-    huf::HuffConstructTreeStream(freq_stream, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
+    // huf::HuffConstructTreeStream(freq_stream, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
 
-    ReadQuantCode(qua_code_vector_in, quant_code_stream1);
+    // ReadQuantCode(qua_code_vector_in, quant_code_stream1);
 
-    ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+    // ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+    ParallelEncoder(quant_code_stream0, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
 
     StreamToMem(huff_encoder_stream, out_data);
 

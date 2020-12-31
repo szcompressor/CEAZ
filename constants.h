@@ -37,19 +37,29 @@ static const uint16_t B_1d = 256;
 static const uint16_t B_2d = 16;
 static const uint16_t B_3d = 8;
 
-static const uint32_t dims_l16[16] = {2048, 32, 1, 1, 225, 113, 1, 1, 2, 0, 0, 0, 6480000, 1024, 512, 0};
+static const uint32_t dims_l16[16] = {1024, 32, 1, 1, 225, 113, 1, 1, 2, 0, 0, 0, 6480000, 1024, 512, 0};
 static const double ebs_l4[4] = {0.000089401054382324226, 11185.550404400077, 0.00017880210876464845, 5592.7752022000386};
-
 static const uint16_t kMemWidth = 512;
 const uint32_t kBurst = 4;
+const uint8_t kDataWidth = 32;
+const uint16_t kNumDataPerRow = kMemWidth / kDataWidth;
+const uint16_t kBlkSize = dims_l16[0];
+const uint16_t kRowsPerBlk = kBlkSize / kNumDataPerRow;
+const uint32_t kInSize = dims_l16[0] * dims_l16[1] / kNumDataPerRow;
+const uint16_t kRows = kInSize;
+
 const uint16_t kOutWidth = 32;
-const uint32_t kInSize = dims_l16[0] * dims_l16[1] * 4 / 64;
-const uint32_t kOutSize = 1024;
+const uint32_t kOutSize = kRows;
+
 const uint8_t kNumEngs = 1;
 const uint32_t kEngSize = dims_l16[0] * dims_l16[1] / kNumEngs;
-const uint16_t kBlkSize = dims_l16[0];
 const uint16_t kDim0 = dims_l16[0];
-const uint8_t kNumHists = 2;
+
+const uint8_t kNumHists = 16;
+
+const uint8_t kDualCodeWidth = 16; 
+typedef ap_uint<kDualCodeWidth> CodeT;
+
 // #define DOUBLE 1
 
 #endif

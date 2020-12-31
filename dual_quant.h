@@ -16,28 +16,18 @@ typedef double InputDataT;
 typedef float InputDataT; 
 #endif
 
-// typedef unsigned short CodeT;
-typedef ap_uint<16> CodeT;
-
 const double kErrorBound = ebs_l4[EBx2_r];
 const uint32_t kRadius = dims_l16[RADIUS];
-const uint8_t kDataWidth = 32;
-const uint16_t kNumDataPerRow = kMemWidth / kDataWidth;
-const uint16_t kRowsPerBlk = kBlkSize / kNumDataPerRow;
-
-// namespace dual {
-// template <typename T, typename Q>
-// void lorenzo_2d_1l_stream(T* data, hls::stream<CodeT>& code, uint16_t eng_blks, uint8_t call_idx);
-
-// }
 
 namespace dual {
 template <typename T, typename Q>
-void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream<CodeT> code_stream[kNumHists], uint16_t eng_blks, uint8_t call_idx) {
+void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream<CodeT> code_stream[kNumHists], hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, uint16_t eng_blks, uint8_t call_idx) {
 
     uint32_t d_raw[kNumDataPerRow];
     float d_reg[kNumDataPerRow];
     double pre_qua_reg[kNumDataPerRow];
+    ap_uint<kMemWidth> qua_code_vector_reg = 0; 
+
     Q pre_qua_buf0[kBlkSize];
     Q pre_qua_buf1[kNumDataPerRow + 1];
     Q pre_qua_buf2[kNumDataPerRow + 1];
@@ -45,8 +35,6 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     Q post_err[kNumDataPerRow];
     Q quantizable[kNumDataPerRow];
     CodeT code_reg[kNumDataPerRow];
-
-    T err = 0;
 
     #pragma HLS ARRAY_PARTITION variable = d_raw dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = d_reg dim = 1 complete
@@ -58,7 +46,8 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     #pragma HLS ARRAY_PARTITION variable = quantizable dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = code_reg dim = 1 complete
 
-    #pragma HLS RESOURCE variable=pre_qua_buf0 core=XPM_MEMORY uram
+    #pragma HLS ARRAY_PARTITION variable = pre_qua_buf0 dim = 1 complete
+    // #pragma HLS RESOURCE variable=pre_qua_buf0 core=XPM_MEMORY uram
 
     // std::ofstream o_file0, o_file1, o_file2;
     // std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
@@ -78,14 +67,15 @@ dual_loop:
     for (uint16_t i2 = 0; i2 < eng_blks; i2++) {
         // prequantization and postquantization
         for (uint16_t i1 = 0; i1 < kRowsPerBlk; i1++) {
+        #pragma HLS PIPELINE II = 1 rewind
 
             ap_uint<kMemWidth> row_buf = mem_row.read();
 
             for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
             #pragma HLS UNROLL   
-            // #pragma HLS UNROLL factor=2
                 d_raw[i0] = row_buf.range(kDataWidth * (i0 + 1) - 1, kDataWidth * i0);
                 d_reg[i0] = *(float*)&(d_raw[i0]);
+                d_reg[i0] = d_raw[i0];
                 pre_qua_reg[i0] = d_reg[i0] * kErrorBound;
                 pre_qua_buf2[i0 + 1] = hls::floor(pre_qua_reg[i0]);
                 pred[i0] = pre_qua_buf2[i0] + pre_qua_buf1[i0 + 1] - pre_qua_buf1[i0];
@@ -94,26 +84,24 @@ dual_loop:
                 code_reg[i0] = post_err[i0] + kRadius;
                 // data[id] = (1 - quantizable[i0]) * pre_qua_buf2[i0+1];  // data array as outlier
                 code_reg[i0] = quantizable[i0] * code_reg[i0];
+                code_stream[i0] << code_reg[i0];
+                qua_code_vector_reg.range(kDualCodeWidth * (i0 + 1) - 1, kDualCodeWidth * i0) = code_reg[i0];
             }
 
+            qua_code_vector_stream << qua_code_vector_reg;
             pre_qua_buf1[0] = pre_qua_buf1[kNumDataPerRow];
             pre_qua_buf2[0] = pre_qua_buf2[kNumDataPerRow];
 
-            for(uint8_t i0 = 0; i0 < kNumDataPerRow / 2; i0++) {
-            #pragma HLS PIPELINE II = 1
+            for(uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
+            #pragma HLS PIPELINE II = 1 rewind
+            #pragma HLS UNROLL
                 if (i2 == 0) {
-                    pre_qua_buf1[i0 * 2 + 1] = 0;
-                    pre_qua_buf1[i0 * 2 + 2] = 0;
+                    pre_qua_buf1[i0 + 1] = 0;
                 } else {
-                    pre_qua_buf1[i0 * 2 + 1] = pre_qua_buf0[i1 * kNumDataPerRow + i0 * 2];
-                    pre_qua_buf1[i0 * 2 + 2] = pre_qua_buf0[i1 * kNumDataPerRow + i0 * 2 + 1];
+                    pre_qua_buf1[i0 + 1] = pre_qua_buf0[i1 * kNumDataPerRow + i0];
                 }
-
-                pre_qua_buf0[i1 * kNumDataPerRow + i0 * 2] = pre_qua_buf2[i0 * 2 + 1];
-                pre_qua_buf0[i1 * kNumDataPerRow + i0 * 2 + 1] = pre_qua_buf2[i0 * 2 + 2];
-
-                code_stream[0] << code_reg[i0 * 2];
-                code_stream[1] << code_reg[i0 * 2 + 1];
+                pre_qua_buf0[i1 * kNumDataPerRow + i0] = pre_qua_buf2[i0 + 1];
+                // code_stream[i0] << code_reg[i0];
             }
 
             // if (i2 == 3) {
