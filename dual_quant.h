@@ -19,6 +19,9 @@ typedef float InputDataT;
 const double kErrorBound = ebs_l4[EBx2_r];
 const uint32_t kRadius = dims_l16[RADIUS];
 
+
+// make 16 configuration
+
 namespace dual {
 template <typename T, typename Q>
 void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream<CodeT> code_stream[kNumHists], hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, uint16_t eng_blks, uint8_t call_idx) {

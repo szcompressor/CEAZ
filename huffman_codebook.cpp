@@ -3,6 +3,25 @@
 
 namespace huf {
 
+void merge_sort_parallel(DTYPE A[SIZE], DTYPE B[SIZE]) {
+#pragma HLS dataflow
+
+    DTYPE temp[STAGES-1][SIZE];
+#pragma HLS array_partition variable=temp complete dim=1
+    int width = 1;
+
+    merge_arrays(A, width, temp[0]);
+    width *= 2;
+
+    for (int stage = 1; stage < STAGES-1; stage++) {
+#pragma HLS unroll
+        merge_arrays(temp[stage-1], width, temp[stage]);
+        width *= 2;
+    }
+
+    merge_arrays(temp[STAGES-2], width, B);
+}
+
 void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
 #pragma HLS DEPENDENCE variable=hist intra RAW false
