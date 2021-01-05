@@ -19,17 +19,14 @@ typedef float InputDataT;
 const double kErrorBound = ebs_l4[EBx2_r];
 const uint32_t kRadius = dims_l16[RADIUS];
 
-
-// make 16 configuration
-
 namespace dual {
 template <typename T, typename Q>
-void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream<CodeT> code_stream[kNumHists], hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, uint16_t eng_blks, uint8_t call_idx) {
+void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream<CodeT> code_stream[kNumHists], hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, uint16_t eng_blks, uint8_t call_idx) {
 
     uint32_t d_raw[kNumDataPerRow];
     float d_reg[kNumDataPerRow];
     double pre_qua_reg[kNumDataPerRow];
-    ap_uint<kMemWidth> qua_code_vector_reg = 0; 
+    ap_uint<kQuaVecWidth> qua_code_vector_reg = 0; 
 
     Q pre_qua_buf0[kBlkSize];
     Q pre_qua_buf1[kNumDataPerRow + 1];
@@ -91,7 +88,10 @@ dual_loop:
                 qua_code_vector_reg.range(kDualCodeWidth * (i0 + 1) - 1, kDualCodeWidth * i0) = code_reg[i0];
             }
 
-            qua_code_vector_stream << qua_code_vector_reg;
+            if (i1 < kHuffRows) {
+                qua_code_vector_stream << qua_code_vector_reg;
+            }
+            
             pre_qua_buf1[0] = pre_qua_buf1[kNumDataPerRow];
             pre_qua_buf2[0] = pre_qua_buf2[kNumDataPerRow];
 

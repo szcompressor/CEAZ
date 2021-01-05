@@ -48,18 +48,6 @@ void StreamToMem(hls::stream<uint32_t> huff_encoder_stream[kNumHists], ap_uint<k
 //     }
 // }
 
-void WriteQuantCode(hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, ap_uint<256> quant_code_buf[kQuantBufSize]) {
-
-    const uint16_t kVectorSize = kBlkSize / kNumHists;
-
-    ap_uint<kMemWidth> qua_code_vector_reg; 
-
-    for (uint16_t i0 = 0; i0 < kRows; i0++) {
-        qua_code_vector_reg = qua_code_vector_stream.read();
-        quant_code_buf[i0] = qua_code_vector_reg;
-    }
-}
-
 // void ReadQuantCode(ap_uint<kMemWidth>* qua_code_vector_in, hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 // //    std::ofstream o_file0;
@@ -79,15 +67,27 @@ void WriteQuantCode(hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, ap
 //     }
 // }
 
-void ReadQuantCode(ap_uint<256> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream[kNumHists]) {
+void WriteQuantCode(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize]) {
+
+    const uint16_t kVectorSize = kBlkSize / kNumHists;
+
+    ap_uint<kQuaVecWidth> qua_code_vector_reg; 
+
+    for (uint16_t i0 = 0; i0 < kHuffRows; i0++) {
+        qua_code_vector_reg = qua_code_vector_stream.read();
+        quant_code_buf[i0] = qua_code_vector_reg;
+    }
+}
+
+void ReadQuantCode(ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 //    std::ofstream o_file0;
 //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\read_code.txt");
 
-    for (uint16_t i1 = 0; i1 < kRows; i1++) {
+    for (uint16_t i1 = 0; i1 < kHuffRows; i1++) {
     #pragma HLS PIPELINE II = 1 rewind
 
-        ap_uint<kMemWidth> row_buf = quant_code_buf[i1];
+        ap_uint<kQuaVecWidth> row_buf = quant_code_buf[i1];
 
         for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
         #pragma HLS UNROLL
@@ -98,18 +98,26 @@ void ReadQuantCode(ap_uint<256> quant_code_buf[kQuantBufSize], hls::stream<CodeT
     }
 }
 
-void scheduler(hls::stream<ap_uint<kMemWidth> >& qua_code_vector_stream, ap_uint<256> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream1[kNumHists]) {
-    for (uint16_t i1 = 0; i1 < 4096; i1++) {
+void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream0[kNumHists], hls::stream<CodeT> quant_code_stream1[kNumHists], 
+    uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], 
+    uint32_t hist10[1024], uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
 
-        if (i1 < 1024) {
+    hls::stream<uint32_t> freq_stream;
+	#pragma HLS STREAM variable = freq_stream depth = 32
+
+    for (uint16_t i1 = 0; i1 < kBatches; i1++) {
+
+        if (i1 < 1) {
             WriteQuantCode(qua_code_vector_stream, quant_code_buf);
             huf::QuantCodeFrequency(quant_code_stream0, freq_stream);
             huf::HuffConstructTreeStream(freq_stream, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
             ReadQuantCode(quant_code_buf, quant_code_stream1);
         } else {
-            for (uint8_t i0 = 0; i0 < 16; i0++) {
-                CodeT quant_code = quant_code_stream0[i0].read();
-                quant_code_stream1[i0] << quant_code;
+            for (uint16_t i2 = 0; i2 < kHuffRows; i2++) {
+                for (uint8_t i0 = 0; i0 < kNumHists; i0++) {
+                    CodeT quant_code = quant_code_stream0[i0].read();
+                    quant_code_stream1[i0] << quant_code;
+                } 
             }
         }
     }
@@ -136,7 +144,7 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data, ap_uint<k
     hls::stream<ap_uint<kMemWidth> > mem_row;
     hls::stream<CodeT> quant_code_stream0[kNumHists];
     hls::stream<CodeT> quant_code_stream1[kNumHists];
-    hls::stream<ap_uint<kMemWidth> > qua_code_vector_stream;
+    hls::stream<ap_uint<kQuaVecWidth> > qua_code_vector_stream;
     hls::stream<uint32_t> freq_stream;
     hls::stream<uint32_t> huff_encoder_stream[kNumHists];
 
@@ -156,7 +164,7 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data, ap_uint<k
     uint32_t hist13[1024];
     uint32_t hist14[1024];
     uint32_t hist15[1024];
-    ap_uint<256> quant_code_buf[kQuantBufSize];
+    ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize];
 
     #pragma HLS STREAM variable = mem_row depth = kBurst
     #pragma HLS STREAM variable = quant_code_stream0 depth = 32
@@ -191,8 +199,9 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data, ap_uint<k
 
 	dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
 
-    // ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
-    ParallelEncoder(quant_code_stream0, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+    scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
+
+    ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
 
     StreamToMem(huff_encoder_stream, out_data);
 
