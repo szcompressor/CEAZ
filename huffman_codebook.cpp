@@ -1,26 +1,9 @@
 #include "huffman_codebook.h"
 #include "merge_sort_parallel.h"
+// #include "merge_sort.h"
+
 
 namespace huf {
-
-void merge_sort_parallel(DTYPE A[SIZE], DTYPE B[SIZE]) {
-#pragma HLS dataflow
-
-    DTYPE temp[STAGES-1][SIZE];
-#pragma HLS array_partition variable=temp complete dim=1
-    int width = 1;
-
-    merge_arrays(A, width, temp[0]);
-    width *= 2;
-
-    for (int stage = 1; stage < STAGES-1; stage++) {
-#pragma HLS unroll
-        merge_arrays(temp[stage-1], width, temp[stage]);
-        width *= 2;
-    }
-
-    merge_arrays(temp[STAGES-2], width, B);
-}
 
 void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
@@ -28,7 +11,7 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
     CodeT old = quant_code_stream.read();
     uint32_t acc = 0;
-    for(uint32_t i = 1; i < kRows; i++) {
+    for(uint32_t i = 1; i < kHuffRows; i++) {
     #pragma HLS PIPELINE II=1 rewind
         CodeT val = quant_code_stream.read();
         if(old == val) {
@@ -45,15 +28,14 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
 void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream) {
+    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], Symbol freq_stream[1024]) {
     // std::ofstream o_file0;
     // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
-
-        freq_reg = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
-        freq_stream << freq_reg; 
+        freq_stream[i].value = i;
+        freq_stream[i].frequency = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
 
         // o_file0 << freq_reg << "\n";
     }
@@ -61,7 +43,7 @@ void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[
     // o_file0.close();
 }
 
-void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream){
+void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], Symbol freq_stream[1024]){
 
 #pragma HLS DATAFLOW
 
@@ -119,27 +101,22 @@ void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::st
     HistogramReduce(hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, freq_stream);
 }
 
-void Filter(hls::stream<uint32_t>& freq_stream,
-            Symbol* heap,
-            uint16_t* heap_length) {
-    uint16_t heap_len = 0;
+void Filter(Symbol sorted_freq[1024], Symbol* heap, uint16_t* heap_length) {
 
+    uint16_t heap_len = 0;
 filter_loop:
     for (uint16_t n = 0; n < kSymbolSize ; ++n) { 
 #pragma HLS PIPELINE II = 1
 #pragma HLS LOOP_TRIPCOUNT min = kSymbolSize max = kSymbolSize 
         heap[n].value = 0;
         heap[n].frequency = 0;
-        Frequency freq = freq_stream.read();
-        if (n == 1048) {
-            heap[heap_len].value = n;
-            heap[heap_len].frequency = 1;
-            ++heap_len;
-        } else if (freq != 0) {
-            heap[heap_len].value = n;
-            heap[heap_len].frequency = freq;
-            ++heap_len;
-        } 
+        Symbol freq = sorted_freq[n];
+
+        if (freq.frequency != 0) {
+            heap[heap_len].value = freq.value;
+            heap[heap_len].frequency = freq.frequency;
+            ++heap_len;  
+        }
     }
 
     heap_length[0] = heap_len;
@@ -421,7 +398,7 @@ void InitBuffers(ap_uint<kSymbolBits>* parent, Frequency* inter_freq, Histogram*
     }  
 }
 
-void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
+void HuffConstructTreeStream(Symbol freq_stream[1024], uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
     uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
     //#pragma HLS inline
@@ -438,6 +415,8 @@ void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, uint32_t hist0
     Histogram length_histogram[kLenHistogramSize]; 
     uint16_t huff_bits_length[kSymbolSize];
 
+    Symbol sorted_freq[kSymbolSize];
+
 // #pragma HLS ARRAY_PARTITION variable = heap dim = 1 complete
 // #pragma HLS ARRAY_PARTITION variable = parent dim = 1 complete
 // #pragma HLS ARRAY_PARTITION variable = inter_freq dim = 1 complete
@@ -445,17 +424,24 @@ void HuffConstructTreeStream(hls::stream<Frequency>& freq_stream, uint32_t hist0
 // #pragma HLS resource variable=inter_freq core=RAM_2P_BRAM
 // #pragma HLS ARRAY_PARTITION variable = huff_bits_length dim = 1 complete
 
+// #pragma HLS resource variable=heap core=RAM_2P_BRAM
+// #pragma HLS resource variable=parent core=RAM_2P_BRAM
+// #pragma HLS resource variable=inter_freq core=RAM_2P_BRAM
+// #pragma HLS resource variable=length_histogram core=RAM_2P_BRAM
+// #pragma HLS resource variable=huff_bits_length core=RAM_2P_BRAM
+#pragma HLS resource variable=sorted_freq core=RAM_2P_BRAM
+
     uint16_t heap_length = 0;
 
     InitBuffers(parent, inter_freq, length_histogram, huff_bits_length);
 
+    merge_sort_parallel(freq_stream, sorted_freq);
+    // merge_sort(freq_stream);
+
     // filter the input
-    Filter(freq_stream, heap, &heap_length);
+    Filter(sorted_freq, heap, &heap_length);
 
     // sort the input
-    // merge_sort_parallel(DTYPE A[SIZE], DTYPE B[SIZE]) 
-    merge_sort_parallel(heap, heap_length);
-
     // RadixSort(heap, heap_length);
 
     // create tree

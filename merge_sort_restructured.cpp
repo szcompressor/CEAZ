@@ -5,13 +5,17 @@
 // sorted merge is stored in out[i1..i3-1]
 void merge(DTYPE in[SIZE], int i1, int i2, int i3, DTYPE out[SIZE]) {
     int f1 = i1, f2 = i2;
+    DTYPE zero;
+    zero.value = 0;
+    zero.frequency = 0;
+
     // Foreach element that needs to be sorted...
     for(int index = i1; index < i3; index++) {
 #pragma HLS pipeline II=1
         DTYPE t1 = in[f1];
-        DTYPE t2 = (f2 == i3) ? 0 : in[f2];
+        DTYPE t2 = (f2 == i3) ? zero : in[f2];
         // Select the smallest available element.
-        if(f2 == i3 || (f1 < i2 && t1 <= t2)) {
+        if(f2 == i3 || (f1 < i2 && t1.frequency <= t2.frequency)) {
             out[index] = t1;
             f1++;
         } else {
@@ -43,6 +47,7 @@ void merge_sort(DTYPE A[SIZE]) {
         // Copy temp[] back to A[] for next iteration
     copy:
         for(int i = 0; i < SIZE; i++) {
+#pragma HLS pipeline II=1
             A[i] = temp[i];
         }
     }

@@ -2,18 +2,23 @@
 #include "sz_hls.h"
 
 void MemToStream(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& mem_row) {
-    ap_uint<kMemWidth> mem_buf[kBurst];
+    // ap_uint<kMemWidth> mem_buf[kBurst];
 
-    for (uint32_t i1 = 0; i1 < kInSize / kBurst; i1++) {
-        for (uint8_t i0 = 0; i0 < kBurst; i0++) {
-        #pragma HLS PIPELINE II = 1 rewind
-            mem_buf[i0] = in_data[i1 * kBurst + i0];
-        }
+    // for (uint32_t i1 = 0; i1 < kInSize / kBurst; i1++) {
+    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
+    //     #pragma HLS PIPELINE II = 1 rewind
+    //         mem_buf[i0] = in_data[i1 * kBurst + i0];
+    //     }
 
-        for (uint8_t i0 = 0; i0 < kBurst; i0++) {
+    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
+    //     #pragma HLS PIPELINE II = 1 rewind
+    //         mem_row << mem_buf[i0];
+    //     }
+    // }
+
+    for (uint32_t i0 = 0; i0 < kInSize; i0++) {
         #pragma HLS PIPELINE II = 1 rewind
-            mem_row << mem_buf[i0];
-        }
+        mem_row << in_data[i0];
     }
 }
 
@@ -102,8 +107,14 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
     uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], 
     uint32_t hist10[1024], uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
 
-    hls::stream<uint32_t> freq_stream;
-	#pragma HLS STREAM variable = freq_stream depth = 32
+ //    hls::stream<uint32_t> freq_stream;
+	// #pragma HLS STREAM variable = freq_stream depth = 32
+
+    Symbol freq_stream[kSymbolSize];
+    #pragma HLS resource variable=freq_stream core=RAM_2P_BRAM
+
+    CodeT quant_code[kNumHists];
+    #pragma HLS ARRAY_PARTITION variable = quant_code dim = 1 complete
 
     for (uint16_t i1 = 0; i1 < kBatches; i1++) {
 
@@ -115,8 +126,9 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
         } else {
             for (uint16_t i2 = 0; i2 < kHuffRows; i2++) {
                 for (uint8_t i0 = 0; i0 < kNumHists; i0++) {
-                    CodeT quant_code = quant_code_stream0[i0].read();
-                    quant_code_stream1[i0] << quant_code;
+                    #pragma HLS UNROLL
+                    quant_code[i0] = quant_code_stream0[i0].read();
+                    quant_code_stream1[i0] << quant_code[i0];
                 } 
             }
         }
