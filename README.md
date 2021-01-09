@@ -1,4 +1,4 @@
-FPGA-Accelerated Scientific Data Reduction
+FPGA-Accelerated Error-Bounded Lossy Compression
 ---
 
 Nowadays, many different tasks such as artificial intelligence, deep learning, graph analysis, and experimental analysis applications need to be simultaneously executed and managed along with the main simulation tasks in the supercomputer, all of which often generate huge amounts of scientific data that must be transferred for in situ processing or post analysis. 
@@ -11,3 +11,10 @@ Preliminary result has been published in [PPoPP'20](https://dl.acm.org/doi/10.11
 
 This project is supported by [Xilinx](https://www.xilinx.com/) and [UChicago Argonne](https://www.uchicagoargonnellc.org). 
 
+(C) 2020 by Washington State University and Argonne National Laboratory. See [COPYRIGHT](https://github.com/szcompressor/SZ_HLS/blob/main/LICENSE) in top-level directory.
+
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
+Developers: Chengming Zhang, Jiannan Tian, Dingwen Tao
+
+Contributors (alphabetic): Franck Cappello, Sheng Di, Xin Liang
