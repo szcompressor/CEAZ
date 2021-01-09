@@ -1,4 +1,4 @@
-An implementation of SZ lossy compression in Vivado HLS for Xilinx FPGAs
+FPGA-Accelerated Scientific Data Reduction
 ---
 
 Nowadays, many different tasks such as artificial intelligence, deep learning, graph analysis, and experimental analysis applications need to be simultaneously executed and managed along with the main simulation tasks in the supercomputer, all of which often generate huge amounts of scientific data that must be transferred for in situ processing or post analysis. 
