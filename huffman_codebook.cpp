@@ -30,7 +30,7 @@ void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], Symbol freq_stream[1024]) {
     // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\code_freq.txt");
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
@@ -377,7 +377,7 @@ assign_codewords:
         hist15[k] = code.codeword;
 
     // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\codeword.txt");
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\codeword.txt");
     // o_file0 << std::bitset<sizeof(unsigned int)*8>(code.codeword) << "\n";
     }
 }

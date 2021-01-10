@@ -10,8 +10,8 @@
 #define GMEM_DWIDTH 512
 #define PARALLEL_ENGINE 1
 #define GMEM_BURST_SIZE 4
-#define GMEM_SIZE (1024 * 32 * 4 / 64)
-#define HOST_CHUNK_SIZE (1024 * 32 * 4)
+#define GMEM_SIZE (1024 * 64 * 4 / 64)
+#define HOST_CHUNK_SIZE (1024 * 64 * 4)
 
 typedef ap_uint<GMEM_DWIDTH> data_t;
 const uint8_t kNumBytes = GMEM_DWIDTH / 8;
@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
   std::string inputFileName = argv[1];
   std::string outputFileName = argv[2];
 
-  // inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls2\\sample-cesm-CLDHGH";
-  inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls2\\32_2048.bin";
+  // inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls3\\sample-cesm-CLDHGH";
+  inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls3\\64_1024.bin";
 
   // File Handling
   std::fstream inFile;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   // }
 
   std::ofstream outFile;
-  outputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\out_data.txt";
+  outputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\out_data.txt";
   // outFile.open(outputFileName.c_str(), std::fstream::binary | std::fstream::out);
   outFile.open(outputFileName.c_str());
 
@@ -51,16 +51,11 @@ int main(int argc, char* argv[]) {
 
   data_t* source_in = new data_t[GMEM_SIZE];
   data_t* source_out = new data_t[GMEM_SIZE];
-  data_t* qua_code_vector_in = new data_t[GMEM_SIZE];
-  data_t* qua_code_vector_out = new data_t[GMEM_SIZE];
-
   ap_uint<kOutWidth>* out_data = new ap_uint<kOutWidth>[kOutSize];
 
   for (int i = 0; i < GMEM_SIZE; i++) {
     source_in[i] = 0;
     source_out[i] = 0;
-    qua_code_vector_in[i] = 0;
-    qua_code_vector_out[i] = 0;
   }
 
   inFile.seekg(0, std::ios::beg);
@@ -80,8 +75,7 @@ int main(int argc, char* argv[]) {
     uint32_t pSize = HOST_CHUNK_SIZE;
     if (readSize + pSize > input_size) pSize = input_size - readSize;
     readSize += pSize;
-    // sz_hls(&source_in[blkSourceStride * i], out_data);
-    sz_hls(&source_in[blkSourceStride * i], out_data, qua_code_vector_out, qua_code_vector_in); 
+    sz_hls(&source_in[blkSourceStride * i], out_data); 
   }
 
   for (int i = 0; i < kOutSize; i++) {

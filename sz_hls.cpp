@@ -56,7 +56,7 @@ void StreamToMem(hls::stream<uint32_t> huff_encoder_stream[kNumHists], ap_uint<k
 // void ReadQuantCode(ap_uint<kMemWidth>* qua_code_vector_in, hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 // //    std::ofstream o_file0;
-// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\read_code.txt");
+// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\read_code.txt");
 
 //     for (uint16_t i1 = 0; i1 < kRows; i1++) {
 //     #pragma HLS PIPELINE II = 1 rewind
@@ -87,7 +87,7 @@ void WriteQuantCode(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream,
 void ReadQuantCode(ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 //    std::ofstream o_file0;
-//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls2\\inter_data\\read_code.txt");
+//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\read_code.txt");
 
     for (uint16_t i1 = 0; i1 < kHuffRows; i1++) {
     #pragma HLS PIPELINE II = 1 rewind
@@ -135,22 +135,15 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
     }
 }
 
-void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data, ap_uint<kMemWidth>* qua_code_vector_out, ap_uint<kMemWidth>* qua_code_vector_in) {
+void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
 
 #pragma HLS INTERFACE m_axi port=in_data depth=kInSize
 #pragma HLS INTERFACE m_axi port=out_data depth=kOutSize
 
-#pragma HLS INTERFACE m_axi port=qua_code_vector_out depth = kInSize 
-#pragma HLS INTERFACE m_axi port=qua_code_vector_in depth = kInSize 
-
 // #pragma HLS INTERFACE m_axi port=in_data depth=kInSize offset = slave bundle = gmem0
 // #pragma HLS INTERFACE m_axi port=out_data depth=kOutSize offset = slave bundle = gmem0
-// #pragma HLS INTERFACE m_axi port=qua_code_vector_out depth = kInSize offset = slave bundle = gmem0 
-// #pragma HLS INTERFACE m_axi port=qua_code_vector_in depth = kInSize offset = slave bundle = gmem0
 // #pragma HLS INTERFACE s_axilite port=in_data bundle = control
 // #pragma HLS INTERFACE s_axilite port=out_data bundle = control
-// #pragma HLS INTERFACE s_axilite port=qua_code_vector_out bundle = control
-// #pragma HLS INTERFACE s_axilite port=qua_code_vector_in bundle = control
 
 #pragma HLS dataflow
     hls::stream<ap_uint<kMemWidth> > mem_row;
