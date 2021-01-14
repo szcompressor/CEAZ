@@ -51,7 +51,7 @@ const uint16_t kRows = kInSize;
 const uint16_t kHuffRows = 1024;
 
 const uint16_t kOutWidth = 32;
-const uint32_t kOutSize = kRows;
+const uint32_t kOutSize = kRows * 16;
 
 const uint8_t kNumEngs = 1;
 const uint32_t kEngSize = dims_l16[0] * dims_l16[1] / kNumEngs;
@@ -67,6 +67,11 @@ const uint16_t kQuaVecWidth = kNumHists * kDualCodeWidth;
 
 const uint8_t kBatches = 4;
 
+static const uint16_t kMaxBits = 32;
+struct Codeword {
+    ap_uint<kMaxBits> codeword;
+    ap_uint<8> code_length;
+};
 // #define DOUBLE 1
 
 #endif

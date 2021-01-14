@@ -9,6 +9,11 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
 #pragma HLS DEPENDENCE variable=hist intra RAW false
 
+    for(uint32_t i = 1; i < 1024; i++) {
+    #pragma HLS PIPELINE II=1 rewind        
+        hist[i] = 0;
+    }
+
     CodeT old = quant_code_stream.read();
     uint32_t acc = 0;
     for(uint32_t i = 1; i < kHuffRows; i++) {
@@ -28,22 +33,22 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
 void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], Symbol freq_stream[1024]) {
-    // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\code_freq.txt");
+    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream) {
+    std::ofstream o_file0;
+    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
-        freq_stream[i].value = i;
-        freq_stream[i].frequency = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
-
-        // o_file0 << freq_reg << "\n";
+    
+        freq_reg = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
+        freq_stream << freq_reg;
+        o_file0 << freq_reg << "\n";
     }
 
-    // o_file0.close();
+    o_file0.close();
 }
 
-void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], Symbol freq_stream[1024]){
+void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream){
 
 #pragma HLS DATAFLOW
 
@@ -101,22 +106,25 @@ void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], Symbol 
     HistogramReduce(hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, freq_stream);
 }
 
-void Filter(Symbol sorted_freq[1024], Symbol* heap, uint16_t* heap_length) {
-
+void Filter(hls::stream<uint32_t>& freq_stream, Symbol* heap, uint16_t* heap_length) {
     uint16_t heap_len = 0;
+
 filter_loop:
     for (uint16_t n = 0; n < kSymbolSize ; ++n) { 
 #pragma HLS PIPELINE II = 1
 #pragma HLS LOOP_TRIPCOUNT min = kSymbolSize max = kSymbolSize 
         heap[n].value = 0;
         heap[n].frequency = 0;
-        Symbol freq = sorted_freq[n];
-
-        if (freq.frequency != 0) {
-            heap[heap_len].value = freq.value;
-            heap[heap_len].frequency = freq.frequency;
-            ++heap_len;  
-        }
+        Frequency freq = freq_stream.read();
+        if (n == 1048) {
+            heap[heap_len].value = n;
+            heap[heap_len].frequency = 1;
+            ++heap_len;
+        } else if (freq != 0) {
+            heap[heap_len].value = n;
+            heap[heap_len].frequency = freq;
+            ++heap_len;
+        } 
     }
 
     heap_length[0] = heap_len;
@@ -320,9 +328,9 @@ process_symbols:
     }
 }
 
-void CreateCodeword(uint16_t* huff_bits_length, Histogram* length_histogram, uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
-    uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024], 
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
+void CreateCodeword(uint16_t* huff_bits_length, Histogram* length_histogram, Codeword hist0[1024], Codeword hist1[1024], Codeword hist2[1024], Codeword hist3[1024], 
+    Codeword hist4[1024], Codeword hist5[1024], Codeword hist6[1024], Codeword hist7[1024], Codeword hist8[1024], Codeword hist9[1024], Codeword hist10[1024], 
+    Codeword hist11[1024], Codeword hist12[1024], Codeword hist13[1024], Codeword hist14[1024], Codeword hist15[1024]) {
 
     //#pragma HLS inline
     ap_uint<kMaxBits> first_codeword[kMaxBits + 1];
@@ -359,25 +367,25 @@ assign_codewords:
             code.code_length = 0;
         }
 
-        hist0[k] = code.codeword;
-        hist1[k] = code.codeword;
-        hist2[k] = code.codeword;
-        hist3[k] = code.codeword;
-        hist4[k] = code.codeword;
-        hist5[k] = code.codeword;
-        hist6[k] = code.codeword;
-        hist7[k] = code.codeword;
-        hist8[k] = code.codeword;
-        hist9[k] = code.codeword;
-        hist10[k] = code.codeword;
-        hist11[k] = code.codeword;
-        hist12[k] = code.codeword;
-        hist13[k] = code.codeword;
-        hist14[k] = code.codeword;
-        hist15[k] = code.codeword;
+        hist0[k] = code;
+        hist1[k] = code;
+        hist2[k] = code;
+        hist3[k] = code;
+        hist4[k] = code;
+        hist5[k] = code;
+        hist6[k] = code;
+        hist7[k] = code;
+        hist8[k] = code;
+        hist9[k] = code;
+        hist10[k] = code;
+        hist11[k] = code;
+        hist12[k] = code;
+        hist13[k] = code;
+        hist14[k] = code;
+        hist15[k] = code;
 
     // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\codeword.txt");
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\codeword.txt");
     // o_file0 << std::bitset<sizeof(unsigned int)*8>(code.codeword) << "\n";
     }
 }
@@ -398,13 +406,13 @@ void InitBuffers(ap_uint<kSymbolBits>* parent, Frequency* inter_freq, Histogram*
     }  
 }
 
-void HuffConstructTreeStream(Symbol freq_stream[1024], uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], 
-    uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
-    uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
+void HuffConstructTreeStream(hls::stream<uint32_t>& freq_stream, Codeword hist0[1024], Codeword hist1[1024], Codeword hist2[1024], Codeword hist3[1024], 
+    Codeword hist4[1024], Codeword hist5[1024], Codeword hist6[1024], Codeword hist7[1024], Codeword hist8[1024], Codeword hist9[1024], Codeword hist10[1024],
+    Codeword hist11[1024], Codeword hist12[1024], Codeword hist13[1024], Codeword hist14[1024], Codeword hist15[1024]) {
     //#pragma HLS inline
     // construct huffman tree and generate huffman codes
 
-    // #pragma HLS DATAFLOW
+    #pragma HLS DATAFLOW
 
     // internal buffers
     Symbol heap[kSymbolSize];
@@ -414,7 +422,6 @@ void HuffConstructTreeStream(Symbol freq_stream[1024], uint32_t hist0[1024], uin
     Frequency inter_freq[kSymbolSize];
     Histogram length_histogram[kLenHistogramSize]; 
     uint16_t huff_bits_length[kSymbolSize];
-
     Symbol sorted_freq[kSymbolSize];
 
 // #pragma HLS ARRAY_PARTITION variable = heap dim = 1 complete
@@ -435,13 +442,12 @@ void HuffConstructTreeStream(Symbol freq_stream[1024], uint32_t hist0[1024], uin
 
     InitBuffers(parent, inter_freq, length_histogram, huff_bits_length);
 
-    merge_sort_parallel(freq_stream, sorted_freq);
-    // merge_sort(freq_stream);
-
     // filter the input
-    Filter(sorted_freq, heap, &heap_length);
+    Filter(freq_stream, heap, &heap_length);
 
     // sort the input
+    merge_sort_parallel(heap, heap_length, sorted_freq);
+    // merge_sort(freq_stream);
     // RadixSort(heap, heap_length);
 
     // create tree

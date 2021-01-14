@@ -56,7 +56,7 @@ void StreamToMem(hls::stream<uint32_t> huff_encoder_stream[kNumHists], ap_uint<k
 // void ReadQuantCode(ap_uint<kMemWidth>* qua_code_vector_in, hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 // //    std::ofstream o_file0;
-// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\read_code.txt");
+// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\read_code.txt");
 
 //     for (uint16_t i1 = 0; i1 < kRows; i1++) {
 //     #pragma HLS PIPELINE II = 1 rewind
@@ -87,7 +87,7 @@ void WriteQuantCode(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream,
 void ReadQuantCode(ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 //    std::ofstream o_file0;
-//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls3\\inter_data\\read_code.txt");
+//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\read_code.txt");
 
     for (uint16_t i1 = 0; i1 < kHuffRows; i1++) {
     #pragma HLS PIPELINE II = 1 rewind
@@ -104,16 +104,13 @@ void ReadQuantCode(ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::str
 }
 
 void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream0[kNumHists], hls::stream<CodeT> quant_code_stream1[kNumHists], 
-    uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], 
-    uint32_t hist10[1024], uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024]) {
+    Codeword hist0[1024], Codeword hist1[1024], Codeword hist2[1024], Codeword hist3[1024], Codeword hist4[1024], Codeword hist5[1024], Codeword hist6[1024], Codeword hist7[1024], Codeword hist8[1024], Codeword hist9[1024], 
+    Codeword hist10[1024], Codeword hist11[1024], Codeword hist12[1024], Codeword hist13[1024], Codeword hist14[1024], Codeword hist15[1024]) {
 
- //    hls::stream<uint32_t> freq_stream;
-	// #pragma HLS STREAM variable = freq_stream depth = 32
-
-    Symbol freq_stream[kSymbolSize];
-    #pragma HLS resource variable=freq_stream core=RAM_2P_BRAM
-
+    hls::stream<uint32_t> freq_stream;
     CodeT quant_code[kNumHists];
+
+    #pragma HLS STREAM variable = freq_stream depth = 32
     #pragma HLS ARRAY_PARTITION variable = quant_code dim = 1 complete
 
     for (uint16_t i1 = 0; i1 < kBatches; i1++) {
@@ -150,32 +147,30 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
     hls::stream<CodeT> quant_code_stream0[kNumHists];
     hls::stream<CodeT> quant_code_stream1[kNumHists];
     hls::stream<ap_uint<kQuaVecWidth> > qua_code_vector_stream;
-    hls::stream<uint32_t> freq_stream;
     hls::stream<uint32_t> huff_encoder_stream[kNumHists];
 
-    uint32_t hist0[1024];
-    uint32_t hist1[1024];
-    uint32_t hist2[1024];
-    uint32_t hist3[1024];
-    uint32_t hist4[1024];
-    uint32_t hist5[1024];
-    uint32_t hist6[1024];
-    uint32_t hist7[1024];
-    uint32_t hist8[1024];
-    uint32_t hist9[1024];
-    uint32_t hist10[1024];
-    uint32_t hist11[1024];
-    uint32_t hist12[1024];
-    uint32_t hist13[1024];
-    uint32_t hist14[1024];
-    uint32_t hist15[1024];
+    Codeword hist0[1024];
+    Codeword hist1[1024];
+    Codeword hist2[1024];
+    Codeword hist3[1024];
+    Codeword hist4[1024];
+    Codeword hist5[1024];
+    Codeword hist6[1024];
+    Codeword hist7[1024];
+    Codeword hist8[1024];
+    Codeword hist9[1024];
+    Codeword hist10[1024];
+    Codeword hist11[1024];
+    Codeword hist12[1024];
+    Codeword hist13[1024];
+    Codeword hist14[1024];
+    Codeword hist15[1024];
     ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize];
 
     #pragma HLS STREAM variable = mem_row depth = kBurst
     #pragma HLS STREAM variable = quant_code_stream0 depth = 32
     #pragma HLS STREAM variable = quant_code_stream1 depth = 32
     #pragma HLS STREAM variable = qua_code_vector_stream depth = 32
-    #pragma HLS STREAM variable = freq_stream depth = 32
     #pragma HLS STREAM variable = huff_encoder_stream depth = 32
 
     #pragma HLS RESOURCE variable=hist0 core=RAM_T2P_BRAM 

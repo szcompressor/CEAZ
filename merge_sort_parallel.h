@@ -11,4 +11,4 @@ typedef Symbol DTYPE;
 //    Frequency frequency;
 //};
 
-extern void merge_sort_parallel(DTYPE A[SIZE], DTYPE B[SIZE]);
+extern void merge_sort_parallel(DTYPE A[SIZE], uint16_t length, DTYPE B[SIZE]);

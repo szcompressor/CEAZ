@@ -45,17 +45,16 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     #pragma HLS ARRAY_PARTITION variable = post_err dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = quantizable dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = code_reg dim = 1 complete
-
     #pragma HLS ARRAY_PARTITION variable = pre_qua_buf0 dim = 1 complete
     // #pragma HLS RESOURCE variable=pre_qua_buf0 core=XPM_MEMORY uram
 
-    // std::ofstream o_file0, o_file1, o_file2;
-    // std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
-    // std::string f_name1 = "C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\code_" + std::to_string(call_idx) + ".txt";
-    // std::string f_name2 = "C:\\Users\\Bizon\\Desktop\\sz_hls1\\inter_data\\pre_quant_" + std::to_string(call_idx) + ".txt";
-    // o_file0.open(f_name0);
-    // o_file1.open(f_name1);
-    // o_file2.open(f_name2);
+    std::ofstream o_file0, o_file1, o_file2;
+    std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
+    std::string f_name1 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_" + std::to_string(call_idx) + ".txt";
+    std::string f_name2 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\pre_quant_" + std::to_string(call_idx) + ".txt";
+    o_file0.open(f_name0);
+    o_file1.open(f_name1);
+    o_file2.open(f_name2);
 
     for(uint8_t i0 = 0; i0 <= kNumDataPerRow; i0++) {
     #pragma HLS UNROLL  
@@ -75,7 +74,6 @@ dual_loop:
             #pragma HLS UNROLL   
                 d_raw[i0] = row_buf.range(kDataWidth * (i0 + 1) - 1, kDataWidth * i0);
                 d_reg[i0] = *(float*)&(d_raw[i0]);
-                d_reg[i0] = d_raw[i0];
                 pre_qua_reg[i0] = d_reg[i0] * kErrorBound;
                 pre_qua_buf2[i0 + 1] = hls::floor(pre_qua_reg[i0]);
                 pred[i0] = pre_qua_buf2[i0] + pre_qua_buf1[i0 + 1] - pre_qua_buf1[i0];
@@ -107,23 +105,23 @@ dual_loop:
                 // code_stream[i0] << code_reg[i0];
             }
 
-            // if (i2 == 3) {
-            //     for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
-            //         o_file0 << std::setprecision(14) << d_reg[i0] << "\n";
-            //         o_file1 << code_reg[i0] << "\n";
-            //         o_file2 << std::setprecision(14) << pre_qua_reg[i0] << "\n";
+            if (i1 < kHuffRows) {
+                for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
+                    o_file0 << std::setprecision(14) << d_reg[i0] << "\n";
+                    o_file1 << code_reg[i0] << "\n";
+                    o_file2 << std::setprecision(14) << pre_qua_reg[i0] << "\n";
 
-            //         if ((i1 * kNumDataPerRow + i0) == 1395) {
-            //             std::cout << pre_qua_buf2[i0] << " " << pre_qua_buf1[i0+1] << " " << pre_qua_buf1[i0] << " " << pre_qua_buf2[i0 + 1] << std::endl;
-            //         } 
-            //     }
-            // }
+                    if ((i1 * kNumDataPerRow + i0) == 1395) {
+                        std::cout << pre_qua_buf2[i0] << " " << pre_qua_buf1[i0+1] << " " << pre_qua_buf1[i0] << " " << pre_qua_buf2[i0 + 1] << std::endl;
+                    } 
+                }
+            }
             // o_file1 << code_reg << "\n";
         }
     }
-    // o_file0.close();
-    // o_file1.close();
-    // o_file2.close();
+    o_file0.close();
+    o_file1.close();
+    o_file2.close();
 
 // dual_loop:
 //     for (uint16_t i1 = 0; i1 < eng_blks; i1++) {
