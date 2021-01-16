@@ -52,6 +52,7 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
     std::string f_name1 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_" + std::to_string(call_idx) + ".txt";
     std::string f_name2 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\pre_quant_" + std::to_string(call_idx) + ".txt";
+
     o_file0.open(f_name0);
     o_file1.open(f_name1);
     o_file2.open(f_name2);
@@ -60,6 +61,7 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     #pragma HLS UNROLL  
         pre_qua_buf0[i0] = 0;
         pre_qua_buf1[i0] = 0;
+        pre_qua_buf2[i0] = 0;
     }
 
 dual_loop:  
@@ -76,6 +78,14 @@ dual_loop:
                 d_reg[i0] = *(float*)&(d_raw[i0]);
                 pre_qua_reg[i0] = d_reg[i0] * kErrorBound;
                 pre_qua_buf2[i0 + 1] = hls::floor(pre_qua_reg[i0]);
+
+                if (i2 == 0) {
+                    pre_qua_buf1[i0 + 1] = 0;
+                } else {
+                    pre_qua_buf1[i0 + 1] = pre_qua_buf0[i1 * kNumDataPerRow + i0];
+                }
+                pre_qua_buf0[i1 * kNumDataPerRow + i0] = pre_qua_buf2[i0 + 1];
+
                 pred[i0] = pre_qua_buf2[i0] + pre_qua_buf1[i0 + 1] - pre_qua_buf1[i0];
                 post_err[i0] = pre_qua_buf2[i0 + 1] - pred[i0];
                 quantizable[i0] = hls::abs(post_err[i0]) < kRadius;
@@ -86,37 +96,30 @@ dual_loop:
                 qua_code_vector_reg.range(kDualCodeWidth * (i0 + 1) - 1, kDualCodeWidth * i0) = code_reg[i0];
             }
 
-            if (i1 < kHuffRows) {
+            if (i2 * kRowsPerBlk + i1 < kHuffRows) {
                 qua_code_vector_stream << qua_code_vector_reg;
             }
             
-            pre_qua_buf1[0] = pre_qua_buf1[kNumDataPerRow];
-            pre_qua_buf2[0] = pre_qua_buf2[kNumDataPerRow];
+            if (i1 == kRowsPerBlk - 1) {
+                pre_qua_buf1[0] = 0;
+                pre_qua_buf2[0] = 0;
 
-            for(uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
-            #pragma HLS PIPELINE II = 1 rewind
-            #pragma HLS UNROLL
-                if (i2 == 0) {
-                    pre_qua_buf1[i0 + 1] = 0;
-                } else {
-                    pre_qua_buf1[i0 + 1] = pre_qua_buf0[i1 * kNumDataPerRow + i0];
-                }
-                pre_qua_buf0[i1 * kNumDataPerRow + i0] = pre_qua_buf2[i0 + 1];
-                // code_stream[i0] << code_reg[i0];
+            } else {
+                pre_qua_buf1[0] = pre_qua_buf1[kNumDataPerRow];
+                pre_qua_buf2[0] = pre_qua_buf2[kNumDataPerRow];
             }
 
-            if (i1 < kHuffRows) {
+            if (i2 * kRowsPerBlk + i1 < kHuffRows) {
                 for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
                     o_file0 << std::setprecision(14) << d_reg[i0] << "\n";
                     o_file1 << code_reg[i0] << "\n";
                     o_file2 << std::setprecision(14) << pre_qua_reg[i0] << "\n";
 
-                    if ((i1 * kNumDataPerRow + i0) == 1395) {
+                    if ((i2 * kRowsPerBlk + i1) * kNumDataPerRow + i0 == 1395) {  
                         std::cout << pre_qua_buf2[i0] << " " << pre_qua_buf1[i0+1] << " " << pre_qua_buf1[i0] << " " << pre_qua_buf2[i0 + 1] << std::endl;
                     } 
                 }
             }
-            // o_file1 << code_reg << "\n";
         }
     }
     o_file0.close();

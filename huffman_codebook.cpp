@@ -9,13 +9,13 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 
 #pragma HLS DEPENDENCE variable=hist intra RAW false
 
-    for(uint32_t i = 1; i < 1024; i++) {
+    for(uint32_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind        
         hist[i] = 0;
     }
 
     CodeT old = quant_code_stream.read();
-    uint32_t acc = 0;
+    uint32_t acc = 1;
     for(uint32_t i = 1; i < kHuffRows; i++) {
     #pragma HLS PIPELINE II=1 rewind
         CodeT val = quant_code_stream.read();
@@ -44,7 +44,6 @@ void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[
         freq_stream << freq_reg;
         o_file0 << freq_reg << "\n";
     }
-
     o_file0.close();
 }
 
@@ -412,7 +411,7 @@ void HuffConstructTreeStream(hls::stream<uint32_t>& freq_stream, Codeword hist0[
     //#pragma HLS inline
     // construct huffman tree and generate huffman codes
 
-    #pragma HLS DATAFLOW
+    // #pragma HLS DATAFLOW
 
     // internal buffers
     Symbol heap[kSymbolSize];

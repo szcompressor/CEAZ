@@ -48,7 +48,7 @@ const uint16_t kRowsPerBlk = kBlkSize / kNumDataPerRow;
 const uint32_t kInSize = dims_l16[0] * dims_l16[1] / kNumDataPerRow;
 
 const uint16_t kRows = kInSize;
-const uint16_t kHuffRows = 1024;
+const uint16_t kHuffRows = kRows / 4;
 
 const uint16_t kOutWidth = 32;
 const uint32_t kOutSize = kRows * 16;
