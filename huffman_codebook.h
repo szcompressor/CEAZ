@@ -49,4 +49,4 @@ void HuffConstructTreeStream(hls::stream<uint32_t>& freq_stream, Codeword hist0[
 
 }
 
-#endif //H_HUFFMAN_ENCODER_H
+#endif //H_HUFFMAN_CODEBOOK_H

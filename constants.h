@@ -48,9 +48,9 @@ const uint16_t kRowsPerBlk = kBlkSize / kNumDataPerRow;
 const uint32_t kInSize = dims_l16[0] * dims_l16[1] / kNumDataPerRow;
 
 const uint16_t kRows = kInSize;
-const uint16_t kHuffRows = kRows / 4;
+const uint16_t kHuffRows = 1024; // fix the variable problem
 
-const uint16_t kOutWidth = 32;
+const uint16_t kOutWidth = 512;
 const uint32_t kOutSize = kRows * 16;
 
 const uint8_t kNumEngs = 1;

@@ -22,9 +22,19 @@ void MemToStream(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& 
     }
 }
 
-void StreamToMem(hls::stream<uint32_t> huff_encoder_stream[kNumHists], ap_uint<kOutWidth>* out_data) {
+void StreamToMem(hls::stream<Codeword> huff_encoder_stream[kNumHists], ap_uint<kOutWidth>* out_data) {
 
-    uint32_t huff_code = 0;
+    uint16_t m_idx = 0;
+    ap_uint<kMemWidth> mem_row = 0;
+    #pragma HLS ARRAY_PARTITION variable = mem_row dim = 0 complete
+
+    Codeword huff_code[kNumHists];
+    ap_uint<kMaxBits> codeword[kNumHists];
+    ap_uint<8> code_len[kNumHists];
+    uint16_t s_p[kNumHists + 1];
+    uint16_t e_p[kNumHists + 1];
+    s_p[0] = 0;
+
     for(uint16_t i1 = 0; i1 < kRows; i1++) {
     #pragma HLS PIPELINE II=1 rewind
     // #pragma HLS UNROLL 
@@ -32,10 +42,19 @@ void StreamToMem(hls::stream<uint32_t> huff_encoder_stream[kNumHists], ap_uint<k
         for (uint8_t i0 = 0; i0 < kNumHists; i0++) {
         #pragma HLS UNROLL
         // #pragma HLS PIPELINE II=1 rewind
-            huff_code = huff_encoder_stream[i0].read();
+            huff_code[i0] = huff_encoder_stream[i0].read();
+            codeword[i0] = huff_code[i0].codeword;
+            code_len[i0] = huff_code[i0].code_length;
 
-            if (i0 == 1) {
-                out_data[i1] = huff_code;
+            e_p[i0] = s_p[i0] + code_len[i0] -1;
+            s_p[i0 + 1] = s_p[i0] + code_len[i0];
+
+            if (e_p[i0] > kMemWidth - 1) {
+                out_data[m_idx] = mem_row;
+                m_idx += 1;
+                mem_row = 0;
+            } else if (code_len[i0] > 0) {
+                mem_row.range(e_p[i0], s_p[i0]) = codeword[i0];
             }
         }
     }
@@ -147,7 +166,7 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
     hls::stream<CodeT> quant_code_stream0[kNumHists];
     hls::stream<CodeT> quant_code_stream1[kNumHists];
     hls::stream<ap_uint<kQuaVecWidth> > qua_code_vector_stream;
-    hls::stream<uint32_t> huff_encoder_stream[kNumHists];
+    hls::stream<Codeword> huff_encoder_stream[kNumHists];
 
     Codeword hist0[1024];
     Codeword hist1[1024];

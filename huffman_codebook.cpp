@@ -34,17 +34,17 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream) {
-    std::ofstream o_file0;
-    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_freq.txt");
+    // std::ofstream o_file0;
+    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
     
         freq_reg = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
         freq_stream << freq_reg;
-        o_file0 << freq_reg << "\n";
+        // o_file0 << freq_reg << "\n";
     }
-    o_file0.close();
+    // o_file0.close();
 }
 
 void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream){
@@ -105,6 +105,30 @@ void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::st
     HistogramReduce(hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, freq_stream);
 }
 
+// void Filter(hls::stream<uint32_t>& freq_stream, Symbol* heap, uint16_t* heap_length) {
+//     uint16_t heap_len = 0;
+
+// filter_loop:
+//     for (uint16_t n = 0; n < kSymbolSize ; ++n) { 
+// #pragma HLS PIPELINE II = 1
+// #pragma HLS LOOP_TRIPCOUNT min = kSymbolSize max = kSymbolSize 
+//         heap[n].value = 0;
+//         heap[n].frequency = 0;
+//         Frequency freq = freq_stream.read();
+//         if (n == 1048) {
+//             heap[heap_len].value = n;
+//             heap[heap_len].frequency = 1;
+//             ++heap_len;
+//         } else if (freq != 0) {
+//             heap[heap_len].value = n;
+//             heap[heap_len].frequency = freq;
+//             ++heap_len;
+//         } 
+//     }
+
+//     heap_length[0] = heap_len;
+// }
+
 void Filter(hls::stream<uint32_t>& freq_stream, Symbol* heap, uint16_t* heap_length) {
     uint16_t heap_len = 0;
 
@@ -115,11 +139,8 @@ filter_loop:
         heap[n].value = 0;
         heap[n].frequency = 0;
         Frequency freq = freq_stream.read();
-        if (n == 1048) {
-            heap[heap_len].value = n;
-            heap[heap_len].frequency = 1;
-            ++heap_len;
-        } else if (freq != 0) {
+
+        if (freq != 0) {
             heap[heap_len].value = n;
             heap[heap_len].frequency = freq;
             ++heap_len;
