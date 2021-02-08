@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
   std::string inputFileName = argv[1];
   std::string outputFileName = argv[2];
 
-  // inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\sample-cesm-CLDHGH";
-  inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\64_1024.bin";
+  // inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\sample-cesm-CLDHGH";
+  inputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\64_1024.bin";
 
   // File Handling
   std::fstream inFile;
@@ -31,15 +31,15 @@ int main(int argc, char* argv[]) {
       exit(0);
   }
 
-  // std::ifstream inFile;
-  // inFile.open(inputFileName.c_str(), std::ios::binary | std::ios::in);
-  // if (!inFile.is_open()) {
-  //     std::cout << "Cannot open the input file!!" << inputFileName << std::endl;
-  //     exit(0);
-  // }
+  std::ifstream inFile;
+  inFile.open(inputFileName.c_str(), std::ios::binary | std::ios::in);
+  if (!inFile.is_open()) {
+      std::cout << "Cannot open the input file!!" << inputFileName << std::endl;
+      exit(0);
+  }
 
   std::ofstream outFile;
-  outputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\out_data.txt";
+  outputFileName = "C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\inter_data\\out_data.txt";
   // outFile.open(outputFileName.c_str(), std::fstream::binary | std::fstream::out);
   outFile.open(outputFileName.c_str());
 

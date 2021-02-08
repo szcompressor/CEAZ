@@ -15,24 +15,41 @@ void MemToStream(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& 
     //         mem_row << mem_buf[i0];
     //     }
     // }
+    ap_uint<kMemWidth> row_reg = 0;
 
     for (uint32_t i0 = 0; i0 < kInSize; i0++) {
         #pragma HLS PIPELINE II = 1 rewind
-        mem_row << in_data[i0];
+        row_reg = in_data[i0];
+        mem_row << row_reg;
     }
 }
 
 void StreamToMem(hls::stream<Codeword> huff_encoder_stream[kNumHists], ap_uint<kOutWidth>* out_data) {
 
     uint16_t m_idx = 0;
-    ap_uint<kMemWidth> mem_row = 0;
-    #pragma HLS ARRAY_PARTITION variable = mem_row dim = 0 complete
-
+    ap_uint<kMemWidth> mem_row[kNumHists];
+    ap_uint<1> full[kNumHists];
+    uint16_t check_full = 0;
     Codeword huff_code[kNumHists];
     ap_uint<kMaxBits> codeword[kNumHists];
     ap_uint<8> code_len[kNumHists];
     uint16_t s_p[kNumHists + 1];
     uint16_t e_p[kNumHists + 1];
+
+    #pragma HLS ARRAY_PARTITION variable = mem_row dim = 1 complete
+    #pragma HLS ARRAY_PARTITION variable = full dim = 1 complete
+
+    #pragma HLS ARRAY_PARTITION variable = huff_code dim = 1 complete
+    #pragma HLS ARRAY_PARTITION variable = codeword dim = 1 complete
+    #pragma HLS ARRAY_PARTITION variable = code_len dim = 1 complete
+    #pragma HLS ARRAY_PARTITION variable = s_p dim = 1 complete
+    #pragma HLS ARRAY_PARTITION variable = e_p dim = 1 complete
+
+    for (uint8_t i0 = 0; i0 < kNumHists; i0++) {
+    #pragma HLS UNROLL    
+        mem_row[i0] = 0;
+    }
+
     s_p[0] = 0;
 
     for(uint16_t i1 = 0; i1 < kRows; i1++) {
@@ -49,13 +66,26 @@ void StreamToMem(hls::stream<Codeword> huff_encoder_stream[kNumHists], ap_uint<k
             e_p[i0] = s_p[i0] + code_len[i0] -1;
             s_p[i0 + 1] = s_p[i0] + code_len[i0];
 
+            // mem_row.range(e_p[0], s_p[0]) = codeword[0];
+
             if (e_p[i0] > kMemWidth - 1) {
-                out_data[m_idx] = mem_row;
-                m_idx += 1;
-                mem_row = 0;
+                full[i0] = 1;
+                mem_row[i0] = 0;
             } else if (code_len[i0] > 0) {
-                mem_row.range(e_p[i0], s_p[i0]) = codeword[i0];
+                mem_row[i0].range(e_p[i0], s_p[i0]) = codeword[i0];
             }
+        }
+
+        check_full = full[0] || full[1] || full[2] || full[3] || full[4] || full[5] || full[6] || full[7] || full[8] || full[9] || full[10] || full[11] || full[12] || full[13] || full[14] || full[15]; 
+        if (check_full) {
+            for (uint8_t i0 = 0; i0 < kNumHists; i0++) {
+            #pragma HLS PIPELINE II=1 rewind
+            #pragma HLS UNROLL
+//                out_data[m_idx] = mem_row[i0];
+//                m_idx += 1;
+
+                out_data[i0] = mem_row[i0];
+            } 
         }
     }
 }
@@ -75,7 +105,7 @@ void StreamToMem(hls::stream<Codeword> huff_encoder_stream[kNumHists], ap_uint<k
 // void ReadQuantCode(ap_uint<kMemWidth>* qua_code_vector_in, hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 // //    std::ofstream o_file0;
-// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\read_code.txt");
+// //    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\inter_data\\read_code.txt");
 
 //     for (uint16_t i1 = 0; i1 < kRows; i1++) {
 //     #pragma HLS PIPELINE II = 1 rewind
@@ -106,7 +136,7 @@ void WriteQuantCode(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream,
 void ReadQuantCode(ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize], hls::stream<CodeT> quant_code_stream[kNumHists]) {
 
 //    std::ofstream o_file0;
-//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\read_code.txt");
+//    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\inter_data\\read_code.txt");
 
     for (uint16_t i1 = 0; i1 < kHuffRows; i1++) {
     #pragma HLS PIPELINE II = 1 rewind
@@ -151,6 +181,32 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
     }
 }
 
+void multi_eng(hls::stream<ap_uint<kMemWidth> >& mem_row, ) {
+
+    uint16_t base_addr [kNumEngs];
+    uint16_t eng_stride = kDim1 / kNumEngs;
+
+    for (i0 = 0; i0 < kNumEngs; i0 ++) {
+    #pragma HLS UNROLL 
+        base_addr[i0] = kRowsPerBlk * eng_stride * i0;
+    }
+
+    for (i0 = 0; i0 < kNumEngs; i0 ++) {
+    #pragma HLS UNROLL 
+
+        for (i1 = 0; i1 < eng_stride; i1 ++) {
+            dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
+
+            scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
+
+            ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+
+        }
+
+    }
+
+}
+
 void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
 
 #pragma HLS INTERFACE m_axi port=in_data depth=kInSize
@@ -186,7 +242,7 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
     Codeword hist15[1024];
     ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize];
 
-    #pragma HLS STREAM variable = mem_row depth = kBurst
+    #pragma HLS STREAM variable = mem_row depth = 32
     #pragma HLS STREAM variable = quant_code_stream0 depth = 32
     #pragma HLS STREAM variable = quant_code_stream1 depth = 32
     #pragma HLS STREAM variable = qua_code_vector_stream depth = 32
