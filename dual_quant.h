@@ -109,17 +109,17 @@ dual_loop:
                 pre_qua_buf2[0] = pre_qua_buf2[kNumDataPerRow];
             }
 
-            // if (i2 * kRowsPerBlk + i1 < kHuffRows) {
-            //     for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
-            //         o_file0 << std::setprecision(14) << d_reg[i0] << "\n";
-            //         o_file1 << code_reg[i0] << "\n";
-            //         o_file2 << std::setprecision(14) << pre_qua_reg[i0] << "\n";
+            if (i2 * kRowsPerBlk + i1 < kHuffRows) {
+                for (uint8_t i0 = 0; i0 < kNumDataPerRow; i0++) {
+                    o_file0 << std::setprecision(14) << d_reg[i0] << "\n";
+                    o_file1 << code_reg[i0] << "\n";
+                    o_file2 << std::setprecision(14) << pre_qua_reg[i0] << "\n";
 
-            //         if ((i2 * kRowsPerBlk + i1) * kNumDataPerRow + i0 == 1395) {  
-            //             std::cout << pre_qua_buf2[i0] << " " << pre_qua_buf1[i0+1] << " " << pre_qua_buf1[i0] << " " << pre_qua_buf2[i0 + 1] << std::endl;
-            //         } 
-            //     }
-            // }
+                    if ((i2 * kRowsPerBlk + i1) * kNumDataPerRow + i0 == 1395) {  
+                        std::cout << pre_qua_buf2[i0] << " " << pre_qua_buf1[i0+1] << " " << pre_qua_buf1[i0] << " " << pre_qua_buf2[i0 + 1] << std::endl;
+                    } 
+                }
+            }
         }
     }
     // o_file0.close();

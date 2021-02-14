@@ -181,7 +181,30 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
     }
 }
 
-void multi_eng(hls::stream<ap_uint<kMemWidth> >& mem_row, ) {
+void MemToStreamMultiEng(ap_uint<kMemWidth>* in_data, uint32_t base_addr, uint32_t eng_stride, hls::stream<ap_uint<kMemWidth> >& mem_row) {
+    // ap_uint<kMemWidth> mem_buf[kBurst];
+
+    // for (uint32_t i1 = 0; i1 < kInSize / kBurst; i1++) {
+    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
+    //     #pragma HLS PIPELINE II = 1 rewind
+    //         mem_buf[i0] = in_data[i1 * kBurst + i0];
+    //     }
+
+    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
+    //     #pragma HLS PIPELINE II = 1 rewind
+    //         mem_row << mem_buf[i0];
+    //     }
+    // }
+    ap_uint<kMemWidth> row_reg = 0;
+
+    for (uint32_t i0 = base_addr; i0 < base_addr + eng_stride; i0++) {
+        #pragma HLS PIPELINE II = 1 rewind
+        row_reg = in_data[i0];
+        mem_row << row_reg;
+    }
+}
+
+void multi_eng(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& mem_row) {
 
     uint16_t base_addr [kNumEngs];
     uint16_t eng_stride = kDim1 / kNumEngs;
@@ -194,15 +217,13 @@ void multi_eng(hls::stream<ap_uint<kMemWidth> >& mem_row, ) {
     for (i0 = 0; i0 < kNumEngs; i0 ++) {
     #pragma HLS UNROLL 
 
-        for (i1 = 0; i1 < eng_stride; i1 ++) {
-            dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
+        MemToStreamMultiEng(in_data, base_addr[i0], eng_stride, mem_row);
 
-            scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
+        dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
 
-            ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+        scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
 
-        }
-
+        ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
     }
 
 }
