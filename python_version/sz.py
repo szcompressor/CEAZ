@@ -27,8 +27,9 @@ def main(args):
     code_freq, dual_quant_code = dual_quant(bin_file, 1024, 64)
 
     test_arr = [3, 1, 2, 5, 5, 1, 5, 7, 6, 0]
+    test_arr = [1, 1, 2, 1, 2, 2, 3, 2, 2, 2, 4, 4, 7, 1, 1, 1]
     test_freq = [0] * 1024
-    test_freq[0:10] = test_arr[:]
+    test_freq[0:68] = test_arr[:]
 
     # freqs = get_frequencies(input_file)
     # freqs.increment(256)  # EOF symbol gets a frequency of 1
@@ -204,7 +205,7 @@ def get_frequencies(filepath):
     return freqs
 
 
-def write_code_len_table(bitout, canoncode):
+def write_code_len_table(bit_out, canoncode):
     for i in range(canoncode.get_symbol_limit()):
         val = canoncode.get_code_length(i)
         # For this file format, we only support codes up to 255 bits long
@@ -213,7 +214,7 @@ def write_code_len_table(bitout, canoncode):
 
         # Write value as 8 bits in big endian
         for j in reversed(range(8)):
-            bitout.write((val >> j) & 1)
+            bit_out.write((val >> j) & 1)
 
 
 def compress(code, dual_quant_code, dim0, dim1, bit_out):

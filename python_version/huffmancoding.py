@@ -150,11 +150,14 @@ class FrequencyTable:
         assert len(pqueue) >= 2
 
         # Repeatedly tie together two nodes with the lowest frequency
+        idx = 1024
         while len(pqueue) > 1:
             x = heapq.heappop(pqueue)  # Tuple of (frequency, lowest symbol, node object)
             y = heapq.heappop(pqueue)  # Tuple of (frequency, lowest symbol, node object)
-            z = (x[0] + y[0], min(x[1], y[1]), InternalNode(x[2], y[2]))  # Construct new tuple
+            # z = (x[0] + y[0], min(x[1], y[1]), InternalNode(x[2], y[2]))  # Construct new tuple
+            z = (x[0] + y[0], idx, InternalNode(x[2], y[2]))  # Construct new tuple
             heapq.heappush(pqueue, z)
+            idx += 1
 
         # Return the remaining node
         return CodeTree(pqueue[0][2], len(self.frequencies))
