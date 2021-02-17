@@ -34,17 +34,23 @@ void HistogramMap(hls::stream<CodeT>& quant_code_stream, uint32_t hist[1024]) {
 void HistogramReduce(uint32_t hist0[1024], uint32_t hist1[1024], uint32_t hist2[1024], uint32_t hist3[1024], uint32_t hist4[1024], 
     uint32_t hist5[1024], uint32_t hist6[1024], uint32_t hist7[1024], uint32_t hist8[1024], uint32_t hist9[1024], uint32_t hist10[1024],
     uint32_t hist11[1024], uint32_t hist12[1024], uint32_t hist13[1024], uint32_t hist14[1024], uint32_t hist15[1024], hls::stream<uint32_t>& freq_stream) {
-    // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_freq.txt");
+    std::ofstream o_file0;
+    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\inter_data\\code_freq.txt");
     uint32_t freq_reg = 0;
+
+    // uint32_t test_arr [1024] = {3, 1, 2, 5, 5, 1, 5, 7, 6, 0};
+    // uint32_t test_arr [1024] = {1, 1, 2, 1, 2, 2, 3, 2, 2, 2, 4, 4, 7, 1, 1, 1};
+
     for(uint16_t i = 0; i < 1024; i++) {
     #pragma HLS PIPELINE II=1 rewind
     
         freq_reg = (hist0[i] + hist1[i] + hist2[i] + hist3[i] + hist4[i] + hist5[i] + hist6[i] + hist7[i] + hist8[i] + hist9[i] + hist10[i] + hist11[i] + hist12[i]+ hist13[i] + hist14[i] + hist15[i]);
         freq_stream << freq_reg;
-        // o_file0 << freq_reg << "\n";
+        // freq_stream << test_arr[i];
+
+        o_file0 << freq_reg << "\n";
     }
-    // o_file0.close();
+    o_file0.close();
 }
 
 void QuantCodeFrequency(hls::stream<CodeT> quant_code_stream[kNumHists], hls::stream<uint32_t>& freq_stream){
@@ -198,6 +204,51 @@ radix_sort:
     }
 }
 
+void swap(Symbol *xp, Symbol *yp)
+{  
+	Symbol temp = *xp;
+    *xp = *yp;  
+    *yp = temp;  
+} 
+
+void SortSimu(Symbol arr[kSymbolSize], uint16_t length, Symbol sorted_arr[kSymbolSize]) {
+    int i, j;
+    int arr_len = length;
+    // One by one move boundary of unsorted subarray  
+    for (i = 0; i < arr_len-1; i++) {  
+        // Find the minimum element in unsorted array  
+        for (j = i+1; j < arr_len; j++) {  
+            if (arr[j].frequency < arr[i].frequency) {
+                // Swap the found minimum element with the first element  
+                swap(&arr[j], &arr[i]);  
+            } else if ((arr[j].frequency == arr[i].frequency) && (arr[j].value < arr[i].value)) {
+                swap(&arr[j], &arr[i]); 
+            }
+        }
+    }
+
+    for (i = 0; i < arr_len; i++) {  
+        sorted_arr[i] = arr[i];
+    }
+
+//     uint16_t pos = 0;
+//     Symbol zero;
+//     zero.value = 0;
+//     zero.frequency = 0;
+//     for(uint16_t i = 0; i < kSymbolSize; i++) {
+// #pragma HLS pipeline II=1
+//         Symbol sym = arr[i];
+//         uint32_t freq = sym.frequency;
+//         if (pos < length && freq) {
+//            sorted_arr[pos] = sym;
+//            pos += 1;
+//         } else if (pos >= length) {
+//             sorted_arr[pos] = zero;
+//             pos += 1;
+//         }
+//     }
+}
+
 void CreateTree(Symbol* heap,
                 uint16_t num_symbols,
                 ap_uint<kSymbolBits>* parent,
@@ -276,8 +327,10 @@ traverse_tree:
 #pragma HLS pipeline II = 2
         tmp = 1;
         tmp <<= i;
+
         uint32_t length = child_depth[parent[i]] + 1;
         child_depth[i] = length;
+
         bool is_left_internal = ((left & tmp) == 0);
         bool is_right_internal = ((right & tmp) == 0);
 
@@ -327,11 +380,12 @@ void CanonizeTree(Symbol* heap, uint16_t num_symbols, Histogram* length_histogra
     uint16_t* huff_bits_length, uint16_t tree_depth) {
     int16_t length = tree_depth;
     Histogram count = 0;
+
 // Iterate across the symbols from lowest frequency to highest
 // Assign them largest bits length to smallest
 process_symbols:
     for (uint16_t k = 0; k < num_symbols; ++k) {
-#pragma HLS LOOP_TRIPCOUNT max = 1024 min = 1024 avg = 1024
+#pragma HLS LOOP_TRIPCOUNT max = 1024 min = 128 avg = 1024
         if (count == 0) {
             // find the next non-zero bits length k
             count = length_histogram[--length];
@@ -343,6 +397,7 @@ process_symbols:
             }
         }
         if (length < 0) break;
+
         huff_bits_length[heap[k].value] = length; // assign symbol k to have length bits
         --count;                                  // keep assigning i bits until we have counted off n symbols
     }
@@ -365,6 +420,9 @@ first_codewords:
         first_codeword[i] = (first_codeword[i - 1] + length_histogram[i - 1]) << 1;
     }
 
+    std::ofstream o_file0;
+    o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4_0\\inter_data\\codeword.txt");
+
     Codeword code;
 assign_codewords:
     for (uint16_t k = 0; k < kSymbolSize ; ++k) {
@@ -376,8 +434,8 @@ assign_codewords:
     make_codeword:
         if (length != 0) {
             ap_uint<kMaxBits> out_reversed = first_codeword[length];
-            out_reversed.reverse();
-            out_reversed = out_reversed >> (kMaxBits - length);
+            // out_reversed.reverse();
+            // out_reversed = out_reversed >> (kMaxBits - length);
 
             code.codeword = (uint32_t)out_reversed;
             code.code_length = length;
@@ -404,9 +462,7 @@ assign_codewords:
         hist14[k] = code;
         hist15[k] = code;
 
-    // std::ofstream o_file0;
-    // o_file0.open("C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\codeword.txt");
-    // o_file0 << std::bitset<sizeof(unsigned int)*8>(code.codeword) << "\n";
+        o_file0 << std::bitset<sizeof(unsigned int)*8>(code.codeword) << "\n";
     }
 }
 
@@ -466,12 +522,23 @@ void HuffConstructTreeStream(hls::stream<uint32_t>& freq_stream, Codeword hist0[
     Filter(freq_stream, heap, &heap_length);
 
     // sort the input
-    merge_sort_parallel(heap, heap_length, sorted_freq);
+    // merge_sort_parallel(heap, heap_length, sorted_freq);
     // merge_sort(freq_stream);
     // RadixSort(heap, heap_length);
 
+    // for(int i=0; i < heap_length; i++) {
+    //     std::cout << " " << heap[i].frequency << " " << heap[i].value << std::endl;
+    // }
+       
+    // compatible with python version
+    SortSimu(heap, heap_length, sorted_freq);
+
+    for(int i=0; i < heap_length; i++) {
+        std::cout << " " << sorted_freq[i].frequency << " " << sorted_freq[i].value << std::endl;
+    }
+
     // create tree
-    CreateTree(heap, heap_length, parent, left, right, inter_freq);
+    CreateTree(sorted_freq, heap_length, parent, left, right, inter_freq);
 
     // get bit-lengths from tree
     ComputeBitsLength(parent, left, right, heap_length, length_histogram, inter_freq);
@@ -480,7 +547,7 @@ void HuffConstructTreeStream(hls::stream<uint32_t>& freq_stream, Codeword hist0[
     // truncateTree(length_histogram, kMaxBits);
 
     // canonize the tree
-    CanonizeTree(heap, heap_length, length_histogram, huff_bits_length, kMaxBits);
+    CanonizeTree(sorted_freq, heap_length, length_histogram, huff_bits_length, kMaxBits);
 
     // generate huffman codewords
     CreateCodeword(huff_bits_length, length_histogram, hist0, hist1, hist2, hist3, hist4, hist5, 

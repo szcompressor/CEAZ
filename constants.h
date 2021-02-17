@@ -40,7 +40,7 @@ static const uint16_t B_3d = 8;
 static const uint32_t dims_l16[16] = {1024, 64, 1, 1, 225, 113, 1, 1, 2, 0, 0, 0, 6480000, 1024, 512, 0};
 static const double ebs_l4[4] = {0.000089401054382324226, 11185.550404400077, 0.00017880210876464845, 5592.7752022000386};
 static const uint16_t kMemWidth = 512;
-const uint32_t kBurst = 4;
+const uint32_t kBurst = 32;
 const uint8_t kDataWidth = 32;
 const uint16_t kNumDataPerRow = kMemWidth / kDataWidth;
 const uint16_t kBlkSize = dims_l16[0];
@@ -48,7 +48,7 @@ const uint16_t kRowsPerBlk = kBlkSize / kNumDataPerRow;
 const uint32_t kInSize = dims_l16[0] * dims_l16[1] / kNumDataPerRow;
 
 const uint16_t kRows = kInSize;
-const uint16_t kHuffRows = 1024; // fix the variable problem
+const uint16_t kHuffRows = 4096; // fix the variable problem
 
 const uint16_t kOutWidth = 512;
 const uint32_t kOutSize = kRows * 16;
@@ -65,7 +65,7 @@ typedef ap_uint<kDualCodeWidth> CodeT;
 const uint16_t kQuantBufSize = kHuffRows;
 const uint16_t kQuaVecWidth = kNumHists * kDualCodeWidth;
 
-const uint8_t kBatches = 4;
+const uint8_t kBatches = 1;
 
 static const uint16_t kMaxBits = 32;
 struct Codeword {

@@ -24,6 +24,17 @@ void MemToStream(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& 
     }
 }
 
+void MemToStreamMultiEng(ap_uint<kMemWidth>* in_data, uint32_t base_addr, uint32_t eng_stride, hls::stream<ap_uint<kMemWidth> >& mem_row) {
+
+    ap_uint<kMemWidth> row_reg = 0;
+
+    for (uint32_t i0 = base_addr; i0 < base_addr + eng_stride; i0++) {
+        #pragma HLS PIPELINE II = 1 rewind
+        row_reg = in_data[i0];
+        mem_row << row_reg;
+    }
+}
+
 void StreamToMem(hls::stream<Codeword> huff_encoder_stream[kNumHists], ap_uint<kOutWidth>* out_data) {
 
     uint16_t m_idx = 0;
@@ -181,53 +192,6 @@ void scheduler(hls::stream<ap_uint<kQuaVecWidth> >& qua_code_vector_stream, ap_u
     }
 }
 
-void MemToStreamMultiEng(ap_uint<kMemWidth>* in_data, uint32_t base_addr, uint32_t eng_stride, hls::stream<ap_uint<kMemWidth> >& mem_row) {
-    // ap_uint<kMemWidth> mem_buf[kBurst];
-
-    // for (uint32_t i1 = 0; i1 < kInSize / kBurst; i1++) {
-    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
-    //     #pragma HLS PIPELINE II = 1 rewind
-    //         mem_buf[i0] = in_data[i1 * kBurst + i0];
-    //     }
-
-    //     for (uint8_t i0 = 0; i0 < kBurst; i0++) {
-    //     #pragma HLS PIPELINE II = 1 rewind
-    //         mem_row << mem_buf[i0];
-    //     }
-    // }
-    ap_uint<kMemWidth> row_reg = 0;
-
-    for (uint32_t i0 = base_addr; i0 < base_addr + eng_stride; i0++) {
-        #pragma HLS PIPELINE II = 1 rewind
-        row_reg = in_data[i0];
-        mem_row << row_reg;
-    }
-}
-
-void multi_eng(ap_uint<kMemWidth>* in_data, hls::stream<ap_uint<kMemWidth> >& mem_row) {
-
-    uint16_t base_addr [kNumEngs];
-    uint16_t eng_stride = kDim1 / kNumEngs;
-
-    for (i0 = 0; i0 < kNumEngs; i0 ++) {
-    #pragma HLS UNROLL 
-        base_addr[i0] = kRowsPerBlk * eng_stride * i0;
-    }
-
-    for (i0 = 0; i0 < kNumEngs; i0 ++) {
-    #pragma HLS UNROLL 
-
-        MemToStreamMultiEng(in_data, base_addr[i0], eng_stride, mem_row);
-
-        dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
-
-        scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
-
-        ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
-    }
-
-}
-
 void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
 
 #pragma HLS INTERFACE m_axi port=in_data depth=kInSize
@@ -302,4 +266,82 @@ void sz_hls(ap_uint<kMemWidth>* in_data, ap_uint<kOutWidth>* out_data) {
     StreamToMem(huff_encoder_stream, out_data);
 
     // std::cout << "finish" << std::endl;
+}
+
+void sz_hls_multi_eng(ap_uint<kMemWidth>* in_data) {
+
+    hls::stream<ap_uint<kMemWidth> > mem_row;
+    hls::stream<CodeT> quant_code_stream0[kNumHists];
+    hls::stream<CodeT> quant_code_stream1[kNumHists];
+    hls::stream<ap_uint<kQuaVecWidth> > qua_code_vector_stream;
+    hls::stream<Codeword> huff_encoder_stream[kNumHists];
+
+    Codeword hist0[1024];
+    Codeword hist1[1024];
+    Codeword hist2[1024];
+    Codeword hist3[1024];
+    Codeword hist4[1024];
+    Codeword hist5[1024];
+    Codeword hist6[1024];
+    Codeword hist7[1024];
+    Codeword hist8[1024];
+    Codeword hist9[1024];
+    Codeword hist10[1024];
+    Codeword hist11[1024];
+    Codeword hist12[1024];
+    Codeword hist13[1024];
+    Codeword hist14[1024];
+    Codeword hist15[1024];
+    ap_uint<kQuaVecWidth> quant_code_buf[kQuantBufSize];
+
+    #pragma HLS STREAM variable = mem_row depth = 32
+    #pragma HLS STREAM variable = quant_code_stream0 depth = 32
+    #pragma HLS STREAM variable = quant_code_stream1 depth = 32
+    #pragma HLS STREAM variable = qua_code_vector_stream depth = 32
+    #pragma HLS STREAM variable = huff_encoder_stream depth = 32
+
+    #pragma HLS RESOURCE variable=hist0 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist1 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist2 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist3 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist4 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist5 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist6 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist7 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist8 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist9 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist10 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist11 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist12 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist13 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist14 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=hist15 core=RAM_T2P_BRAM 
+    #pragma HLS RESOURCE variable=quant_code_buf core=XPM_MEMORY uram
+
+    const uint8_t kCallIdx = 0;
+    const uint16_t kDim1 = dims_l16[1];
+    uint32_t eng_blks[kNumEngs] = {kDim1};
+
+    uint32_t base_addr [kNumEngs];
+    uint32_t num_blks_per_eng = kDim1 / kNumEngs;
+    uint32_t eng_stride = kRowsPerBlk * num_blks_per_eng;
+
+    for (uint16_t i0 = 0; i0 < kNumEngs; i0 ++) {
+    #pragma HLS UNROLL 
+        base_addr[i0] = eng_stride * i0;
+    }
+
+    for (uint16_t i0 = 0; i0 < kNumEngs; i0 ++) {
+    #pragma HLS UNROLL 
+    #pragma HLS dataflow
+
+        MemToStreamMultiEng(in_data, base_addr[i0], eng_stride, mem_row);
+
+        dual::lorenzo_2d_1l_stream<ap_uint<32>, int16_t>(mem_row, quant_code_stream0, qua_code_vector_stream, kDim1, kCallIdx);
+
+        scheduler(qua_code_vector_stream, quant_code_buf, quant_code_stream0, quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15);
+
+        ParallelEncoder(quant_code_stream1, hist0, hist1, hist2, hist3, hist4, hist5, hist6, hist7, hist8, hist9, hist10, hist11, hist12, hist13, hist14, hist15, huff_encoder_stream);
+    }
+
 }
