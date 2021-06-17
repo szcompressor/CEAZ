@@ -27,6 +27,7 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     float d_reg[kNumDataPerRow];
     double pre_qua_reg[kNumDataPerRow];
     ap_uint<kQuaVecWidth> qua_code_vector_reg = 0; 
+    qua_code_vector_stream << qua_code_vector_reg;
 
     Q pre_qua_buf0[kBlkSize];
     Q pre_qua_buf1[kNumDataPerRow + 1];
@@ -46,16 +47,16 @@ void lorenzo_2d_1l_stream(hls::stream<ap_uint<kMemWidth> >& mem_row, hls::stream
     #pragma HLS ARRAY_PARTITION variable = quantizable dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = code_reg dim = 1 complete
     #pragma HLS ARRAY_PARTITION variable = pre_qua_buf0 dim = 1 complete
-    // #pragma HLS RESOURCE variable=pre_qua_buf0 core=XPM_MEMORY uram
+    // #pragma HLS BIND_STORAGE variable=pre_qua_buf0 type=RAM_1P impl=URAM latency=1
 
-    std::ofstream o_file0, o_file1, o_file2;
-    std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
-    std::string f_name1 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_" + std::to_string(call_idx) + ".txt";
-    std::string f_name2 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\pre_quant_" + std::to_string(call_idx) + ".txt";
+    // std::ofstream o_file0, o_file1, o_file2;
+    // std::string f_name0 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\ori_data_" + std::to_string(call_idx) + ".txt";
+    // std::string f_name1 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\code_" + std::to_string(call_idx) + ".txt";
+    // std::string f_name2 = "C:\\Users\\Bizon\\Desktop\\sz_hls4\\inter_data\\pre_quant_" + std::to_string(call_idx) + ".txt";
 
-    o_file0.open(f_name0);
-    o_file1.open(f_name1);
-    o_file2.open(f_name2);
+    // o_file0.open(f_name0);
+    // o_file1.open(f_name1);
+    // o_file2.open(f_name2);
 
     for(uint8_t i0 = 0; i0 <= kNumDataPerRow; i0++) {
     #pragma HLS UNROLL  
@@ -92,13 +93,20 @@ dual_loop:
                 code_reg[i0] = post_err[i0] + kRadius;
                 // data[id] = (1 - quantizable[i0]) * pre_qua_buf2[i0+1];  // data array as outlier
                 code_reg[i0] = quantizable[i0] * code_reg[i0];
-                code_stream[i0] << code_reg[i0];
+                // code_stream[i0] << code_reg[i0];
+
+                // for testing
+                if (i1 * 16 + i0 < 1024)
+                    code_stream[i0] << i1 * 16 + i0;
+                else
+                    code_stream[i0] << i0;
+
                 qua_code_vector_reg.range(kDualCodeWidth * (i0 + 1) - 1, kDualCodeWidth * i0) = code_reg[i0];
             }
 
-            if (i2 * kRowsPerBlk + i1 < kHuffRows) {
-                qua_code_vector_stream << qua_code_vector_reg;
-            }
+            // if (i2 * kRowsPerBlk + i1 < kHuffRows) {
+            //     qua_code_vector_stream << qua_code_vector_reg;
+            // }
             
             if (i1 == kRowsPerBlk - 1) {
                 pre_qua_buf1[0] = 0;
