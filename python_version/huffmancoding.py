@@ -28,6 +28,7 @@ class HuffmanEncoder:
         if not isinstance(self.codetree, CodeTree):
             raise ValueError("Invalid current code tree")
         bits = self.codetree.get_code(symbol)
+
         for b in bits:
             self.output.write(b)
 
@@ -150,7 +151,7 @@ class FrequencyTable:
         assert len(pqueue) >= 2
 
         # Repeatedly tie together two nodes with the lowest frequency
-        idx = 1024
+        idx = 1026
         while len(pqueue) > 1:
             x = heapq.heappop(pqueue)  # Tuple of (frequency, lowest symbol, node object)
             y = heapq.heappop(pqueue)  # Tuple of (frequency, lowest symbol, node object)

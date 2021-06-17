@@ -13,7 +13,8 @@
 # https://github.com/nayuki/Reference-Huffman-coding
 # 
 
-import contextlib, sys
+import contextlib
+import sys
 import huffmancoding
 
 
